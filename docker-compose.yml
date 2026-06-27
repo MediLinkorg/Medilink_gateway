@@ -1,9 +1,42 @@
 services:
   gateway:
-    build: .
-    image: medilink-gateway:latest
-    env_file: .env
+    image: ${DOCKERHUB_USERNAME}/medilink-gateway:${IMAGE_TAG:-latest}
+    environment:
+      # Non-secrets — hardcoded
+      GATEWAY_HOST: "0.0.0.0"
+      GATEWAY_PORT: "8000"
+      API_PREFIX: /api/v1
+      CORS_ALLOW_ORIGINS: "*"
+      HAIKU_MODEL: claude-haiku-4-5-20251001
+      SONNET_MODEL: claude-sonnet-4-6
+      SONNET_MAX_TOKENS: "1500"
+      GEMINI_MODEL: gemini-2.0-flash
+      HTAN_TIMEOUT: "60"
+      RAG_TIMEOUT: "60"
+      SERVICE_HEALTH_TIMEOUT: "5"
+      SERVICE_RETRIES: "1"
+      DEFAULT_PATIENT_MODE: "true"
+      HTAN_TTA: basic
+      RAG_TOP_K: "5"
+      SUPPORTED_MODALITIES: dermoscopy,histology,microscopy
+      LANGCHAIN_PROJECT: medilink
+      # Downstream services — update with real EC2 IPs before deploying gateway
+      HTAN_SERVICE_URL: http://REPLACE_WITH_HTAN_EC2_IP:8001
+      RAG_SERVICE_URL: http://REPLACE_WITH_RAG_EC2_IP:8002
+      AUTOREC_SERVICE_URL: http://REPLACE_WITH_AUTOREC_EC2_IP:8003
+      # AGENT_SERVICE_URL: http://REPLACE_WITH_AGENT_EC2_IP:8004  # add later
+      # Secrets — injected at runtime from shell environment (set by GitHub Actions)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
-    # In production HTAN_SERVICE_URL / RAG_SERVICE_URL point at the other EC2 boxes.
