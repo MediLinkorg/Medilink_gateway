@@ -1,0 +1,9 @@
+services:
+  gateway:
+    build: .
+    image: medilink-gateway:latest
+    env_file: .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    # In production HTAN_SERVICE_URL / RAG_SERVICE_URL point at the other EC2 boxes.
